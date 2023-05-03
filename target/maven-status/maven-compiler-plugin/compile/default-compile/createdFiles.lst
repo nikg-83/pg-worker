@@ -1,3 +1,6 @@
+com\pg\paymentgateway\service\PNBFileProcessor.class
 com\pg\paymentgateway\model\BankStatement.class
+com\pg\paymentgateway\model\Statement.class
 com\pg\paymentgateway\PaymentGatewayWorkerApplication.class
+com\pg\paymentgateway\repository\BankStatementRepository.class
 com\pg\paymentgateway\controller\TransactionController.class

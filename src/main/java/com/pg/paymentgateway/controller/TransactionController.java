@@ -49,7 +49,7 @@ public class TransactionController {
         logger.info("X-Aws-Sqsd-Scheduled-At: {}", sqsdMessageTaskSchdeuleTime);
         logger.info("X-Aws-Sqsd-Sender-Id: {}", sqsdMessageSenderId);
 
-        PNBFileProcessor.processMessage(sqsdMessageBody);
+        pnbFileProcessor.processMessage(sqsdMessageBody);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
