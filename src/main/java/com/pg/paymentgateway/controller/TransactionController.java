@@ -1,8 +1,10 @@
 package com.pg.paymentgateway.controller;
 
+import com.pg.paymentgateway.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @Slf4j
 public class TransactionController {
+    @Autowired
+    public PNBFileProcessor pnbFileProcessor;
 
     private static final Logger logger = LoggerFactory.getLogger(TransactionController.class);
 
@@ -44,6 +48,8 @@ public class TransactionController {
         logger.info("X-Aws-Sqsd-Attr-(message-attribute-name): {}", sqsdMessageCustomAttribute);
         logger.info("X-Aws-Sqsd-Scheduled-At: {}", sqsdMessageTaskSchdeuleTime);
         logger.info("X-Aws-Sqsd-Sender-Id: {}", sqsdMessageSenderId);
+
+        PNBFileProcessor.processMessage(sqsdMessageBody);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
