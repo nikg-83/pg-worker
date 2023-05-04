@@ -26,28 +26,22 @@ public class PNBFileProcessor {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
-//            Pattern pattern = Pattern.compile("UPI/(\\w+)/(\\w+)/(\\w+)/(.+)/");
+            Pattern pattern = Pattern.compile("UPI/(\\w+)/(\\w+)/(.+)");
             for (JsonNode row : jsonNode) {
-                String description = row.get("Description").toString();
-                val statement = new BankStatement();
-                statement.setAmount(row.get("CrAmount").toString());
-                statement.setTransactionDate(row.get("TxnDate").textValue());
-                statement.setUtrNumber(description);
-                repository.save(statement);
+                String description = row.get("Description").asText();
+                if (StringUtils.hasLength(description)) {
+                    logger.info(description);
+                    Matcher matcher = pattern.matcher(description);
+                    if (matcher.find()) {
+                        val statement = new BankStatement();
+                        statement.setAmount(row.get("CrAmount").asText());
+                        statement.setTransactionDate(row.get("TxnDate").asText());
+                        statement.setUtrNumber(matcher.group(1));
+                        repository.save(statement);
+                    }
+                }
 
-//                logger.info("UPI Id -" + matcher.group(1));
-//                logger.info("Txn No - " + row.get("TxnNo"));
-//                logger.info("Cr Amount - " + row.get("CrAmount"));
-//                logger.info("Txn Date - " + row.get("TxnDate"));
-//                if (StringUtils.hasLength(description)){
-//                    Matcher matcher = pattern.matcher(description);
-//                    if(matcher.matches()){
-//                        logger.info("UPI Id -" + matcher.group(1));
-//                        logger.info("Txn No - " + row.get("TxnNo"));
-//                        logger.info("Cr Amount - " + row.get("CrAmount"));
-//                        logger.info("Txn Date - " + row.get("TxnDate"));
-//                    }
-//                }
+
             }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);

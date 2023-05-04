@@ -20,9 +20,9 @@ public class PNBFileProcessorTest {
             jsonString = "[{\"TxnNo\":\"S74697456\",\"TxnDate\":\"29-04-2023\",\"Description\":\"ATM\\/311959965104\\/P2V\\/lovamarrisetti@oksbi\\/MARISETT\",\"BranchName\":\"-\",\"DrAmount\":null,\"CrAmount\":\"2,000.00\",\"Balance\":\"11,99,052.20 Cr.\",\"KimsRemar\":null},{\"TxnNo\":\"S74687048\",\"TxnDate\":\"29-04-2023\",\"Description\":\"UPI\\/311959939681\\/P2V\\/niranjanenriques220@oksbi\\/NIR\",\"BranchName\":\"-\",\"DrAmount\":null,\"CrAmount\":\"5,600.00\",\"Balance\":\"11,97,052.20 Cr.\",\"KimsRemar\":null}]";
             System.out.println(jsonString);
             JsonNode jsonNode = objectMapper.readTree(jsonString);
-            Pattern pattern = Pattern.compile("UPI/(\\w+)/(\\w+)/(\\w+)/(.+)/");
+            Pattern pattern = Pattern.compile("UPI/(\\w+)/(\\w+)/(.+)");
             for (JsonNode row : jsonNode) {
-                String description = row.get("Description").toString();
+                String description = row.get("Description").asText();
 
                 if (StringUtils.hasLength(description)) {
                     System.out.println(description);
