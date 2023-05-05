@@ -1,6 +1,9 @@
+com\pg\paymentgateway\service\IDFCFileProcessor.class
+com\pg\paymentgateway\service\IndusFileProcessor.class
 com\pg\paymentgateway\service\PNBFileProcessor.class
 com\pg\paymentgateway\model\BankStatement.class
 com\pg\paymentgateway\model\Statement.class
 com\pg\paymentgateway\PaymentGatewayWorkerApplication.class
+com\pg\paymentgateway\service\RBLFileProcessor.class
 com\pg\paymentgateway\repository\BankStatementRepository.class
 com\pg\paymentgateway\controller\TransactionController.class
