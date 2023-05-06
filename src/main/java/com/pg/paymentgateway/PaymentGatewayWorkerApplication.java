@@ -9,10 +9,5 @@ public class PaymentGatewayWorkerApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(PaymentGatewayWorkerApplication.class, args);
 	}
-//
-//	@Override
-//	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-//		return application.sources(PaymentGatewayWorkerApplication.class);
-//	}
 
 }
