@@ -3,6 +3,8 @@ package com.pg.paymentgateway.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.sql.Date;
+
 @Data
 @Entity
 @Table(name="bank_statement_record")
@@ -19,7 +21,7 @@ public class BankStatement {
     String transactionNumber;
     String amount;
     String utrNumber;
-    String transactionDate;
+    Date transactionDate;
 //    String description;
 //    String BranchName;
 //    String DrAmount;
