@@ -22,7 +22,7 @@ public class IDFCFileProcessor {
     private static final Logger logger = LoggerFactory.getLogger(IDFCFileProcessor.class);
     SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yyyy");
     @Autowired
-    ReconProcessor reconProcessor;;
+    ReconProcessor reconProcessor;
 
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();

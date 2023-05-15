@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,6 +41,12 @@ public class RBLSmartFileProcessor {
                         statement.setAmount(row.get("Credit").asText());
                         statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("Value Date").asText(), sdf, "RBL SMart Bank"));
                         statement.setUtrNumber(matcher.group(1));
+                        statement.setBankId(6);
+                        statement.setAccountId(row.get("AccNumber").asLong());
+                        statement.setAccountName(row.get("AccName").asText());
+                        statement.setIsClaimed(0);
+                        statement.setCreatedAt(LocalDateTime.now());
+                        statement.setUpdatedAt(LocalDateTime.now());
                         reconProcessor.saveStatement(statement);
                     }
                 }
