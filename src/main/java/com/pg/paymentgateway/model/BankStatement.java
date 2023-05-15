@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.sql.Date;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -22,6 +23,15 @@ public class BankStatement {
     String amount;
     String utrNumber;
     Date transactionDate;
+    Long accountId;
+    String accountName;
+    Integer bankId;
+    String orderId;
+    Integer isClaimed;
+    Integer isChecked;
+    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
+ //   String bankName;
 //    String description;
 //    String BranchName;
 //    String DrAmount;

@@ -23,6 +23,8 @@ public class RBLSmartFileProcessor {
     SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
     @Autowired
     BankStatementRepository repository;
+    @Autowired
+    ReconProcessor reconProcessor;
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -38,7 +40,7 @@ public class RBLSmartFileProcessor {
                         statement.setAmount(row.get("Credit").asText());
                         statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("Value Date").asText(), sdf, "RBL SMart Bank"));
                         statement.setUtrNumber(matcher.group(1));
-                        repository.save(statement);
+                        reconProcessor.saveStatement(statement);
                     }
                 }
             }

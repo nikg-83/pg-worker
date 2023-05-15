@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.paymentgateway.model.BankStatement;
-import com.pg.paymentgateway.repository.BankStatementRepository;
 import com.pg.paymentgateway.util.ExcelDateUtil;
 import lombok.val;
 import org.slf4j.Logger;
@@ -14,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,8 +21,8 @@ import java.util.regex.Pattern;
 public class IndusFileProcessor {
     private static final Logger logger = LoggerFactory.getLogger(IndusFileProcessor.class);
     SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
-    @Autowired
-    BankStatementRepository repository;
+     @Autowired
+    ReconProcessor reconProcessor;
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -38,7 +38,13 @@ public class IndusFileProcessor {
                         statement.setAmount(row.get("Credit").asText());
                         statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("TxnDate").asText() , sdf, "Indus Bank"));
                         statement.setUtrNumber(matcher.group(1));
-                        repository.save(statement);
+                        statement.setBankId(2);
+                        statement.setAccountId(row.get("AccNumber").asLong());
+                        statement.setAccountName(row.get("AccName").asText());
+                        statement.setIsClaimed(0);
+                        statement.setCreatedAt(LocalDateTime.now());
+                        statement.setUpdatedAt(LocalDateTime.now());
+                        reconProcessor.saveStatement(statement);
                     }
                 }
 
