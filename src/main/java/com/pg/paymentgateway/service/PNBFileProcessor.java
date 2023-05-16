@@ -36,8 +36,8 @@ public class PNBFileProcessor {
                     Matcher matcher = pattern.matcher(description);
                     if (matcher.find()) {
                         val statement = new BankStatement();
-                        statement.setAmount(row.get("CrAmount").asText());
-                        statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("TxnDate").asText(), sdf, "PNB Bank"));
+                        statement.setAmount(row.get("Cr Amount").asText());
+                        statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("Txn Date").asText(), sdf, "PNB Bank"));
                         statement.setUtrNumber(matcher.group(1));
                         statement.setBankId(4);
                         statement.setAccountId(row.get("AccNumber").asLong());
