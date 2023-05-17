@@ -12,6 +12,8 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
     public List<Transaction> findByTxnId(String txnId);
 
+    public List<Transaction> findByStatementTransactionNumber(String utrNo);
+
     Transaction findByTxnIdAndAmount(
             @Param("txnId") String txnId,
             @Param("amount") String amount);

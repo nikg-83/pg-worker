@@ -45,4 +45,5 @@ public class Transaction {
     public Instant createdAt;
     public Instant updatedAt;
     public Instant deletedAt;
+    public Instant statusFailedAfter;
 }

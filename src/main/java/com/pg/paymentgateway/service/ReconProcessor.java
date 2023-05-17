@@ -63,7 +63,7 @@ public class ReconProcessor {
         }*/
         //List<Transaction> transactions = transactionRepository.findAll();
         //Map<String, Transaction> transCache = transactions.stream().collect(Collectors.toMap(Transaction::getTxnId, Function.identity()));
-        List<Transaction> transactions = transactionRepository.findByTxnId(this.bankStatement.getUtrNumber());
+        List<Transaction> transactions = transactionRepository.findByStatementTransactionNumber(this.bankStatement.getUtrNumber());
         transactions.stream().forEach(transaction1 -> {
             if(Float.parseFloat(transaction1.getAmount()) == Float.parseFloat(this.bankStatement.getAmount())){
                 // Record Matched
