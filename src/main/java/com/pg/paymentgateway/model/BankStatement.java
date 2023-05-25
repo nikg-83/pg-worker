@@ -23,7 +23,7 @@ public class BankStatement {
     String amount;
     String utrNumber;
     Date transactionDate;
-    Long accountId;
+    String accountId;
     String accountName;
     Integer bankId;
     String orderId;

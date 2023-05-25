@@ -3,26 +3,38 @@ package com.pg.paymentgateway.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.paymentgateway.model.BankAccounts;
 import com.pg.paymentgateway.model.BankStatement;
+import com.pg.paymentgateway.repository.BankAccountsRepository;
 import com.pg.paymentgateway.util.ExcelDateUtil;
 import lombok.val;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class IndusFileProcessor {
+public class IndusFileProcessor implements FileProcessor {
     private static final Logger logger = LoggerFactory.getLogger(IndusFileProcessor.class);
     SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+
+    private Integer bankId;
      @Autowired
     ReconProcessor reconProcessor;
+
+     @Autowired
+    BankAccountsRepository bankAccountsRepository;
+    @Autowired
+    @Qualifier("dailyLimitListener")
+    FileEventListener dailyLimitListener;
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
@@ -38,8 +50,11 @@ public class IndusFileProcessor {
                         statement.setAmount(row.get("Credit").asText());
                         statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("TxnDate").asText() , sdf, "Indus Bank"));
                         statement.setUtrNumber(matcher.group(1));
-                        statement.setBankId(2);
-                        statement.setAccountId(row.get("AccNumber").asLong());
+                        statement.setAccountId(row.get("AccNumber").asText());
+                        if(bankId == null){
+                            List<BankAccounts> bankAccounts = bankAccountsRepository.findByAccountNumber(row.get("AccNumber").asText());
+                            bankId = bankAccounts.get(0).getBankId();
+                        }
                         statement.setAccountName(row.get("AccName").asText());
                         statement.setIsClaimed(0);
                         statement.setCreatedAt(LocalDateTime.now());
@@ -47,10 +62,17 @@ public class IndusFileProcessor {
                         reconProcessor.saveStatement(statement);
                     }
                 }
-
             }
+            invokeEvents();
         } catch (JsonProcessingException e) {
+            logger.error("Error in processing Indus file records");
             throw new RuntimeException(e);
         }
+    }
+
+    private void invokeEvents() {
+        this.registerListener(dailyLimitListener);
+        this.onFileComplete(new FileEvent(bankId, reconProcessor.getBankStatement().getAccountId()));
+        this.unregisterListener(dailyLimitListener);
     }
 }

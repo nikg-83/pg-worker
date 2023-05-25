@@ -1,6 +1,7 @@
 package com.pg.paymentgateway.repository;
 
 import com.pg.paymentgateway.model.BankStatement;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
@@ -23,4 +24,9 @@ public interface BankStatementRepository extends CrudRepository<BankStatement, L
             @Param("amount") String amount,
             @Param("utrNumber") String utrNumber);
     // @Param("currentDateMinus2") Date currentDateMinus2);
+
+    @Query(value = "SELECT SUM(CAST(amount AS DECIMAL)) AS total_amount " +
+            "FROM bank_statement_record " +
+            "WHERE transaction_date = CURRENT_DATE AND account_id = :accountId", nativeQuery = true)
+    Double getTotalAmountByAccountId(@Param("accountId") String accountId);
 }

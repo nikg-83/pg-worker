@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 
@@ -21,7 +20,7 @@ public class ReconProcessor {
     @Autowired
     TransactionRepository transactionRepository;
 
-    BankStatement bankStatement;
+    private BankStatement bankStatement;
 
     private boolean isBankStatementExist(BankStatement fileBankStatement){
         List<BankStatement> bankStatementList = statementRepository.findByBankIdAndAmountAndUtrNumber(fileBankStatement.getBankId(), fileBankStatement.getAmount(), fileBankStatement.getUtrNumber());
@@ -30,6 +29,10 @@ public class ReconProcessor {
         }
         this.bankStatement = bankStatementList.get(0);
         return true;
+    }
+
+    public BankStatement getBankStatement(){
+        return this.bankStatement;
     }
 
     public void saveStatement(BankStatement statement){
@@ -70,7 +73,7 @@ public class ReconProcessor {
                 this.bankStatement.setOrderId(transaction1.orderId);
                 this.bankStatement.setIsClaimed(1);
                 transaction1.setStatus("Success");
-                transaction1.setBankAccountId(Long.toString(this.bankStatement.getAccountId()));
+                transaction1.setBankAccountId(this.bankStatement.getAccountId());
                 transactionRepository.save(transaction1);
                 }
             });
@@ -80,11 +83,6 @@ public class ReconProcessor {
         //getTransaction();
         //match statement and transaction
         //Update statement and transaction
-    }
-
-    private Optional<BankStatement> getTransactions(){
-
-           return null;
     }
 
 }
