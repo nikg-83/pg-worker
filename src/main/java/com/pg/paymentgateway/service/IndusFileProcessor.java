@@ -55,6 +55,7 @@ public class IndusFileProcessor implements FileProcessor {
                             List<BankAccounts> bankAccounts = bankAccountsRepository.findByAccountNumber(row.get("AccNumber").asText());
                             bankId = bankAccounts.get(0).getBankId();
                         }
+                        statement.setBankId(bankId);
                         statement.setAccountName(row.get("AccName").asText());
                         statement.setIsClaimed(0);
                         statement.setCreatedAt(LocalDateTime.now());

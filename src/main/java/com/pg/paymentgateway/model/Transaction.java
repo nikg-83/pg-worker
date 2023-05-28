@@ -37,7 +37,7 @@ public class Transaction {
     public long cron_4;
     public long cron_5;
     public long cron_6;
-    public long is_Failed_1;
+    public int isSuccessAfterFailed;
     public long is_Failed_2;
     public long isUnclaimedCheck;
     public String note;

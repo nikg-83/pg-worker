@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -72,6 +73,10 @@ public class ReconProcessor {
                 // Record Matched
                 this.bankStatement.setOrderId(transaction1.orderId);
                 this.bankStatement.setIsClaimed(1);
+                // Check for failed transition state and set flag
+                if("Failed".equals(transaction1.getStatus()) || ("Pending".equals(transaction1.getStatus()) && Instant.now().isAfter(transaction1.getStatusFailedAfter()))){
+                    transaction1.setIsSuccessAfterFailed(1);
+                }
                 transaction1.setStatus("Success");
                 transaction1.setBankAccountId(this.bankStatement.getAccountId());
                 transactionRepository.save(transaction1);
