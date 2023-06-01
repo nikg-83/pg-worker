@@ -1,14 +1,16 @@
 package com.pg.paymentgateway.repository;
 
 import com.pg.paymentgateway.model.BankStatement;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
 import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
-public interface BankStatementRepository extends CrudRepository<BankStatement, Long> {
+public interface BankStatementRepository extends JpaRepository<BankStatement, Long>, JpaSpecificationExecutor<BankStatement> {
 
     public List<BankStatement> findByTransactionDate(Date date);
 
@@ -29,4 +31,6 @@ public interface BankStatementRepository extends CrudRepository<BankStatement, L
             "FROM bank_statement_record " +
             "WHERE transaction_date = CURRENT_DATE AND account_id = :accountId", nativeQuery = true)
     Double getTotalAmountByAccountId(@Param("accountId") String accountId);
+
+    List<BankStatement> findByCreatedAtGreaterThan(LocalDateTime dateTime);
 }

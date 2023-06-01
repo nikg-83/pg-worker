@@ -35,25 +35,34 @@ public class IndusFileProcessor implements FileProcessor {
     @Autowired
     @Qualifier("dailyLimitListener")
     FileEventListener dailyLimitListener;
+    private String accountNumber;
+
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             Pattern pattern = Pattern.compile("UPI/(\\w+)/(\\w+)/(.+)");
+            reconProcessor.initializeCache();
+            int upiCounter = 0;
+            int totalrecordsCounter = 0;
             for (JsonNode row : jsonNode) {
+                totalrecordsCounter++;
                 String description = row.get("Description").asText();
                 if (StringUtils.hasLength(description)) {
                     logger.info(description);
                     Matcher matcher = pattern.matcher(description);
                     if (matcher.find()) {
+                        upiCounter++;
                         val statement = new BankStatement();
                         statement.setAmount(row.get("Credit").asText());
                         statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("TxnDate").asText() , sdf, "Indus Bank"));
                         statement.setUtrNumber(matcher.group(1));
                         statement.setAccountId(row.get("AccNumber").asText());
                         if(bankId == null){
-                            List<BankAccounts> bankAccounts = bankAccountsRepository.findByAccountNumber(row.get("AccNumber").asText());
+                            String accNum = row.get("AccNumber").asText();
+                            List<BankAccounts> bankAccounts = bankAccountsRepository.findByAccountNumber(accNum);
                             bankId = bankAccounts.get(0).getBankId();
+                            this.accountNumber = accNum;
                         }
                         statement.setBankId(bankId);
                         statement.setAccountName(row.get("AccName").asText());
@@ -64,6 +73,8 @@ public class IndusFileProcessor implements FileProcessor {
                     }
                 }
             }
+            logger.info("Indus message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
+            reconProcessor.commitRecords();
             invokeEvents();
         } catch (JsonProcessingException e) {
             logger.error("Error in processing Indus file records");
