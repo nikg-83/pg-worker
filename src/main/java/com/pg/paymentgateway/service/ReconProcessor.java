@@ -4,6 +4,7 @@ import com.pg.paymentgateway.model.BankStatement;
 import com.pg.paymentgateway.model.Transaction;
 import com.pg.paymentgateway.repository.BankStatementRepository;
 import com.pg.paymentgateway.repository.TransactionRepository;
+import lombok.val;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,53 +23,51 @@ public class ReconProcessor {
     @Autowired
     TransactionRepository transactionRepository;
 
-    //private BankStatement bankStatement;
+    private boolean isBankStatementExist(BankStatement fileBankStatement, Map<String,BankStatement> statementCache){
 
-    private Map<String,BankStatement> statementCache = new HashMap<>();
-
-    private Map<String,List<Transaction>> transCache = new HashMap<>();
-
-    List<BankStatement> bankStatementsList = new LinkedList<>();
-
-    List<Transaction> transactionsList = new LinkedList<>();
-
-
-    public void initializeCache(){
-        List<BankStatement> bankStatements = statementRepository.findByCreatedAtGreaterThan(LocalDateTime.now().minusDays(2));
-        statementCache.clear();
-
-        bankStatements.stream().forEach(bankStatement->{
-            statementCache.put(bankStatement.getUtrNumber(), bankStatement);
-        });
-
-        List<Transaction> transactions = transactionRepository.findAll();
-
-        transactions.stream().forEach(transaction -> {
-            transCache.computeIfAbsent(transaction.getStatementTransactionNumber(),k -> new ArrayList<>()).add(transaction);
-        });
-        //Map<String, Transaction> transCache = transactions.stream().collect(Collectors.toMap(Transaction::getStatementTransactionNumber, Function.identity()));
-    }
-
-    private boolean isBankStatementExist(BankStatement fileBankStatement){
-       /* List<BankStatement> bankStatementList = statementRepository.findByBankIdAndAmountAndUtrNumber(fileBankStatement.getBankId(), fileBankStatement.getAmount(), fileBankStatement.getUtrNumber());
-        if(bankStatementList.isEmpty()) {
-            return false;
-        }*/
         BankStatement bankStatement1 = statementCache.get(fileBankStatement.getUtrNumber());
         if(bankStatement1 == null){
             return false;
         }
-       // this.bankStatement = bankStatementList.get(0);
-       // this.bankStatement = bankStatement1;
+
         return true;
     }
 
-     public void saveStatement(BankStatement statement){
+        public void saveStatementList(List<BankStatement> bankStatementList) {
+            List<BankStatement> bankStatementsList = new LinkedList<>();
+            List<Transaction> transactionsList = new LinkedList<>();
+            Map<String,BankStatement> statementCache = new HashMap<>();
+            Map<String,List<Transaction>> transCache = new HashMap<>();
+
+            List<BankStatement> bankStatements = statementRepository.findByCreatedAtGreaterThan(LocalDateTime.now().minusDays(2));
+            bankStatements.stream().forEach(bankStatement->{
+                statementCache.put(bankStatement.getUtrNumber(), bankStatement);
+            });
+
+            List<Transaction> transactions = transactionRepository.findAll();
+            transactions.stream().forEach(transaction -> {
+                transCache.computeIfAbsent(transaction.getStatementTransactionNumber(),k -> new ArrayList<>()).add(transaction);
+            });
+
+            bankStatementList.stream().forEach(bankStatement -> {
+                saveStatement(bankStatement, statementCache, transCache, bankStatementsList, transactionsList);
+            });
+
+            statementRepository.saveAllAndFlush(bankStatementsList);
+            logger.info("Total statement records committed - " + bankStatementsList.size());
+            transactionRepository.saveAllAndFlush(transactionsList);
+            logger.info("Total transaction records committed - " + transactionsList.size());
+        }
+
+     public void saveStatement(BankStatement statement,
+                               Map<String,BankStatement> statementCache,
+                               Map<String,List<Transaction>> transCache,
+                               List<BankStatement> bankStatementsList,
+                               List<Transaction> transactionsList){
         boolean isStatementAdded = false;
         BankStatement bankStatement1;
         try {
-            if (!isBankStatementExist(statement)) {
-                //statementRepository.save(statement);
+            if (!isBankStatementExist(statement, statementCache)) {
                 bankStatementsList.add(statement);
                 isStatementAdded = true;
                 bankStatement1 = statement;
@@ -76,7 +75,7 @@ public class ReconProcessor {
                 bankStatement1 = statementCache.get(statement.getUtrNumber());
             }
             if(bankStatement1.getOrderId() == null){
-                performRecon(bankStatement1,isStatementAdded);
+                performRecon(bankStatement1,isStatementAdded, transCache, bankStatementsList, transactionsList);
             }
 
         }catch (Exception e){
@@ -88,19 +87,13 @@ public class ReconProcessor {
         }
     }
 
-    private void performRecon(BankStatement newBankStatement, boolean isStatementInserted)
+    private void performRecon(BankStatement newBankStatement,
+                              boolean isStatementInserted,
+                              Map<String,List<Transaction>> transCache,
+                              List<BankStatement> bankStatementsList,
+                              List<Transaction> transactionsList)
     {
-       /* Transaction transaction = transactionRepository.findByTxnIdAndAmount(this.bankStatement.getUtrNumber(),this.bankStatement.getAmount());
-        if(transaction != null){
-            this.bankStatement.setOrderId(transaction.orderId);
-            this.bankStatement.setIsClaimed(1);
-            transaction.setStatus("Success");
-            transaction.setBankAccountId(Long.toString(this.bankStatement.getAccountId()));
-            transactionRepository.save(transaction);
-        }*/
-        //List<Transaction> transactions = transactionRepository.findAll();
-        //Map<String, Transaction> transCache = transactions.stream().collect(Collectors.toMap(Transaction::getTxnId, Function.identity()));
-        //List<Transaction> transactions = transactionRepository.findByStatementTransactionNumber(this.bankStatement.getUtrNumber());
+
         List<Transaction> transactions = transCache.get(newBankStatement.getUtrNumber());
         if(transactions != null){
             transactions.stream().forEach(transaction1 -> {
@@ -124,17 +117,6 @@ public class ReconProcessor {
         if(!isStatementInserted){
             bankStatementsList.add(newBankStatement);
         }
-        //statementRepository.save(this.bankStatement);
-        //getTransaction();
-        //match statement and transaction
-        //Update statement and transaction
     }
 
-    public void commitRecords() {
-
-        statementRepository.saveAllAndFlush(bankStatementsList);
-        logger.info("Total statement records committed - " + bankStatementsList.size());
-        transactionRepository.saveAllAndFlush(transactionsList);
-        logger.info("Total transaction records committed - " + transactionsList.size());
-    }
 }

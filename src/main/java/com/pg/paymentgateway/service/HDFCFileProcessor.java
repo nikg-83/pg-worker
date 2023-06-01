@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,10 +43,10 @@ public class HDFCFileProcessor implements FileProcessor {
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             Pattern pattern = Pattern.compile("UPI-(\\w+)-(.+)");
-            //intializeCache : DB two
-            reconProcessor.initializeCache();
+
             int upiCounter = 0;
             int totalrecordsCounter = 0;
+            List<BankStatement> bankStatementList = new ArrayList<>();
             for (JsonNode row : jsonNode) {
                 totalrecordsCounter++;
                 String description = row.get("Description").asText();
@@ -71,14 +72,15 @@ public class HDFCFileProcessor implements FileProcessor {
                         statement.setIsClaimed(0);
                         statement.setCreatedAt(LocalDateTime.now());
                         statement.setUpdatedAt(LocalDateTime.now());
-                        reconProcessor.saveStatement(statement);
+                        bankStatementList.add(statement);
                     }
                 }
 
             }
+
+            reconProcessor.saveStatementList(bankStatementList);
             logger.info("HDFC message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
             if(upiCounter > 0){
-                reconProcessor.commitRecords();
                 invokeEvents();
             }
         } catch (JsonProcessingException e) {
