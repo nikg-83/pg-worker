@@ -90,8 +90,10 @@ public class RBLFileProcessor implements FileProcessor{
 
             }
             logger.info("RBL message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
-            reconProcessor.commitRecords();
-            invokeEvents();
+            if(upiCounter > 0){
+                reconProcessor.commitRecords();
+                invokeEvents();
+            }
         } catch (JsonProcessingException e) {
             logger.error("Error in processing RBL file records");
             throw new RuntimeException(e);
@@ -102,7 +104,7 @@ public class RBLFileProcessor implements FileProcessor{
 
     private void invokeEvents() {
         this.registerListener(dailyLimitListener);
-        this.onFileComplete(new FileEvent(bankId, reconProcessor.getBankStatement().getAccountId()));
+        this.onFileComplete(new FileEvent(bankId, accountNumber));
         this.unregisterListener(dailyLimitListener);
     }
 

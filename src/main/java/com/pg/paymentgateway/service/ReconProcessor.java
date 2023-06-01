@@ -22,7 +22,7 @@ public class ReconProcessor {
     @Autowired
     TransactionRepository transactionRepository;
 
-    private BankStatement bankStatement;
+    //private BankStatement bankStatement;
 
     private Map<String,BankStatement> statementCache = new HashMap<>();
 
@@ -59,37 +59,36 @@ public class ReconProcessor {
             return false;
         }
        // this.bankStatement = bankStatementList.get(0);
-        this.bankStatement = bankStatement1;
+       // this.bankStatement = bankStatement1;
         return true;
     }
 
-    public BankStatement getBankStatement(){
-        return this.bankStatement;
-    }
-
-    public void saveStatement(BankStatement statement){
+     public void saveStatement(BankStatement statement){
         boolean isStatementAdded = false;
+        BankStatement bankStatement1;
         try {
             if (!isBankStatementExist(statement)) {
                 //statementRepository.save(statement);
                 bankStatementsList.add(statement);
                 isStatementAdded = true;
-                this.bankStatement = statement;
+                bankStatement1 = statement;
+            }else{
+                bankStatement1 = statementCache.get(statement.getUtrNumber());
             }
-            if(this.bankStatement.getOrderId() == null){
-                performRecon(isStatementAdded);
+            if(bankStatement1.getOrderId() == null){
+                performRecon(bankStatement1,isStatementAdded);
             }
 
         }catch (Exception e){
-            logger.error("Error in saving and/or processing recon for bankId -" + this.bankStatement.getBankId() +
-                    " UTR No: " + this.bankStatement.getUtrNumber() );
+            logger.error("Error in saving and/or processing recon for account -" + statement.getAccountId() +
+                    " UTR No: " + statement.getUtrNumber() );
             logger.error(e.getMessage());
             throw e;
             //ToDO: Put these records in ErrorQueue to make it Fault tolerant
         }
     }
 
-    private void performRecon(boolean isStatementInserted)
+    private void performRecon(BankStatement newBankStatement, boolean isStatementInserted)
     {
        /* Transaction transaction = transactionRepository.findByTxnIdAndAmount(this.bankStatement.getUtrNumber(),this.bankStatement.getAmount());
         if(transaction != null){
@@ -102,28 +101,28 @@ public class ReconProcessor {
         //List<Transaction> transactions = transactionRepository.findAll();
         //Map<String, Transaction> transCache = transactions.stream().collect(Collectors.toMap(Transaction::getTxnId, Function.identity()));
         //List<Transaction> transactions = transactionRepository.findByStatementTransactionNumber(this.bankStatement.getUtrNumber());
-        List<Transaction> transactions = transCache.get(this.bankStatement.getUtrNumber());
+        List<Transaction> transactions = transCache.get(newBankStatement.getUtrNumber());
         if(transactions != null){
             transactions.stream().forEach(transaction1 -> {
-                if(Float.parseFloat(transaction1.getAmount()) == Float.parseFloat(this.bankStatement.getAmount())){
+                if(Float.parseFloat(transaction1.getAmount()) == Float.parseFloat(newBankStatement.getAmount())){
                     // Record Matched
-                    this.bankStatement.setOrderId(transaction1.orderId);
-                    this.bankStatement.setIsClaimed(1);
-                    this.bankStatement.setUpdatedAt(LocalDateTime.now());
+                    newBankStatement.setOrderId(transaction1.orderId);
+                    newBankStatement.setIsClaimed(1);
+                    newBankStatement.setUpdatedAt(LocalDateTime.now());
                     // Check for failed transition state and set flag
                     if("Failed".equals(transaction1.getStatus()) || ("Pending".equals(transaction1.getStatus()) && Instant.now().isAfter(transaction1.getStatusFailedAfter()))){
                         transaction1.setIsSuccessAfterFailed(1);
                     }
                     transaction1.setStatus("Success");
-                    transaction1.setBankAccountId(this.bankStatement.getAccountId());
+                    transaction1.setBankAccountId(newBankStatement.getAccountId());
                     transactionsList.add(transaction1);
                     //transactionRepository.save(transaction1);
                 }
             });
         }
-        this.bankStatement.setIsChecked(1);
+        newBankStatement.setIsChecked(1);
         if(!isStatementInserted){
-            bankStatementsList.add(this.bankStatement);
+            bankStatementsList.add(newBankStatement);
         }
         //statementRepository.save(this.bankStatement);
         //getTransaction();

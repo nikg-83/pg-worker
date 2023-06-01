@@ -77,8 +77,10 @@ public class HDFCFileProcessor implements FileProcessor {
 
             }
             logger.info("HDFC message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
-            reconProcessor.commitRecords();
-            invokeEvents();
+            if(upiCounter > 0){
+                reconProcessor.commitRecords();
+                invokeEvents();
+            }
         } catch (JsonProcessingException e) {
             logger.error("Error in processing HDFC file records");
             throw new RuntimeException(e);
@@ -87,7 +89,7 @@ public class HDFCFileProcessor implements FileProcessor {
 
     private void invokeEvents() {
         this.registerListener(dailyLimitListener);
-        this.onFileComplete(new FileEvent(bankId, reconProcessor.getBankStatement().getAccountId()));
+        this.onFileComplete(new FileEvent(bankId, accountNumber));
         this.unregisterListener(dailyLimitListener);
     }
 
