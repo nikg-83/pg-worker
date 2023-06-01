@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -52,9 +53,9 @@ public class RBLSmartFileProcessor implements FileProcessor{
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             Pattern pattern = Pattern.compile("UPI/(\\w+)/(.+)");
-            reconProcessor.initializeCache();
             int upiCounter = 0;
             int totalrecordsCounter = 0;
+            List<BankStatement> bankStatementList = new ArrayList<>();
             for (JsonNode row : jsonNode) {
                 totalrecordsCounter++;
                 String description = row.get("Description").asText();
@@ -86,14 +87,14 @@ public class RBLSmartFileProcessor implements FileProcessor{
                         statement.setIsClaimed(0);
                         statement.setCreatedAt(LocalDateTime.now());
                         statement.setUpdatedAt(LocalDateTime.now());
-                        reconProcessor.saveStatement(statement);
+                        bankStatementList.add(statement);
                     }
                 }
             }
+            reconProcessor.saveStatementList(bankStatementList);
             logger.info("RBL Smart message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
             if(upiCounter > 0){
-                reconProcessor.commitRecords();
-                invokeEvents();
+                dailyLimitListener.handleEvent(new FileEvent(bankId, accountNumber));
             }
 
         } catch (JsonProcessingException e) {
@@ -102,9 +103,4 @@ public class RBLSmartFileProcessor implements FileProcessor{
         }
     }
 
-    private void invokeEvents() {
-        this.registerListener(dailyLimitListener);
-        this.onFileComplete(new FileEvent(bankId, accountNumber));
-        this.unregisterListener(dailyLimitListener);
-    }
 }

@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,9 +44,9 @@ public class IDFCFileProcessor implements FileProcessor {
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             Pattern pattern = Pattern.compile("UPI/(\\w+)/(\\w+)/(.+)");
-            reconProcessor.initializeCache();
             int upiCounter = 0;
             int totalrecordsCounter = 0;
+            List<BankStatement> bankStatementList = new ArrayList<>();
             for (JsonNode row : jsonNode) {
                 totalrecordsCounter++;
                 String description = row.get("Description").asText();
@@ -70,15 +71,15 @@ public class IDFCFileProcessor implements FileProcessor {
                         statement.setIsClaimed(0);
                         statement.setCreatedAt(LocalDateTime.now());
                         statement.setUpdatedAt(LocalDateTime.now());
-                        reconProcessor.saveStatement(statement);
+                        bankStatementList.add(statement);
                     }
                 }
 
             }
+            reconProcessor.saveStatementList(bankStatementList);
             logger.info("IDFC message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
             if(upiCounter > 0){
-                reconProcessor.commitRecords();
-                invokeEvents();
+                dailyLimitListener.handleEvent(new FileEvent(bankId, accountNumber));
             }
         } catch (JsonProcessingException e) {
             logger.error("Error in processing IDFC file records");
@@ -86,9 +87,4 @@ public class IDFCFileProcessor implements FileProcessor {
         }
     }
 
-    private void invokeEvents() {
-        this.registerListener(dailyLimitListener);
-        this.onFileComplete(new FileEvent(bankId, accountNumber));
-        this.unregisterListener(dailyLimitListener);
     }
-}

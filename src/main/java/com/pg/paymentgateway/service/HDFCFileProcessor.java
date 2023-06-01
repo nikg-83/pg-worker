@@ -57,8 +57,10 @@ public class HDFCFileProcessor implements FileProcessor {
                         upiCounter++;
                         val statement = new BankStatement();
                         statement.setAmount(row.get("Deposit Amt").asText());
-                        statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("ValueDate").asText(), sdf, "HDFC Bank"));
-                        statement.setUtrNumber(matcher.group(1));
+                        statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("ValueDate").asText(), sdf, row.toString()));
+                        String chequeRef = row.get("BankRefNo").asText();
+                        int length = chequeRef.length();
+                        statement.setUtrNumber(length >= 12 ? chequeRef.substring(length -12): chequeRef);
 
                         statement.setAccountId(row.get("AccNumber").asText());
                         if(bankId == null){
@@ -81,7 +83,7 @@ public class HDFCFileProcessor implements FileProcessor {
             reconProcessor.saveStatementList(bankStatementList);
             logger.info("HDFC message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
             if(upiCounter > 0){
-                invokeEvents();
+                dailyLimitListener.handleEvent(new FileEvent(bankId, accountNumber));
             }
         } catch (JsonProcessingException e) {
             logger.error("Error in processing HDFC file records");
@@ -89,10 +91,5 @@ public class HDFCFileProcessor implements FileProcessor {
         }
     }
 
-    private void invokeEvents() {
-        this.registerListener(dailyLimitListener);
-        this.onFileComplete(new FileEvent(bankId, accountNumber));
-        this.unregisterListener(dailyLimitListener);
-    }
 
 }

@@ -59,7 +59,7 @@ public class DailyLimitListener implements FileEventListener{
          }
         );
 
-        System.out.println("Total amount is " + totalAmount);
+        //System.out.println("Total amount is " + totalAmount);
         int priorityOrder = Integer.MAX_VALUE -1;
         if(remainingAmount[0].get() <= 0){
 
