@@ -40,6 +40,7 @@ public class IndusFileProcessor implements FileProcessor {
 
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();
+        ExcelDateUtil excelDateUtil = new ExcelDateUtil();
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             Pattern pattern = Pattern.compile("UPI/(\\w+)/(\\w+)/(.+)");
@@ -56,7 +57,7 @@ public class IndusFileProcessor implements FileProcessor {
                         upiCounter++;
                         val statement = new BankStatement();
                         statement.setAmount(row.get("Credit").asText());
-                        statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("TxnDate").asText() , sdf, "Indus Bank"));
+                        statement.setTransactionDate(excelDateUtil.parseDate(row.get("TxnDate").asText() , sdf, "Indus Bank"));
                         statement.setUtrNumber(matcher.group(1));
                         statement.setAccountId(row.get("AccNumber").asText());
                         if(bankId == null){

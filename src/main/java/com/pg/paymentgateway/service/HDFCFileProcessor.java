@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -38,8 +39,10 @@ public class HDFCFileProcessor implements FileProcessor {
     @Autowired
     @Qualifier("dailyLimitListener")
     FileEventListener dailyLimitListener;
+
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();
+        ExcelDateUtil excelDateUtil = new ExcelDateUtil();
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             Pattern pattern = Pattern.compile("UPI-(\\w+)-(.+)");
@@ -57,13 +60,13 @@ public class HDFCFileProcessor implements FileProcessor {
                         upiCounter++;
                         val statement = new BankStatement();
                         statement.setAmount(row.get("Deposit Amt").asText());
-                        statement.setTransactionDate(ExcelDateUtil.parseDate(row.get("ValueDate").asText(), sdf, row.toString()));
+                        statement.setTransactionDate(parseDate(row.get("ValueDate").asText(), sdf, row.toString()));
                         String chequeRef = row.get("BankRefNo").asText();
                         int length = chequeRef.length();
-                        statement.setUtrNumber(length >= 12 ? chequeRef.substring(length -12): chequeRef);
+                        statement.setUtrNumber(length >= 12 ? chequeRef.substring(length - 12) : chequeRef);
 
                         statement.setAccountId(row.get("AccNumber").asText());
-                        if(bankId == null){
+                        if (bankId == null) {
                             String accNum = row.get("AccNumber").asText();
                             List<BankAccounts> bankAccounts = bankAccountsRepository.findByAccountNumber(accNum);
                             bankId = bankAccounts.get(0).getBankId();
@@ -82,14 +85,30 @@ public class HDFCFileProcessor implements FileProcessor {
 
             reconProcessor.saveStatementList(bankStatementList);
             logger.info("HDFC message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
-            if(upiCounter > 0){
+            if (upiCounter > 0) {
                 dailyLimitListener.handleEvent(new FileEvent(bankId, accountNumber));
             }
         } catch (JsonProcessingException e) {
             logger.error("Error in processing HDFC file records");
             throw new RuntimeException(e);
         }
+
     }
 
+    private Date parseDate(String date, SimpleDateFormat sdf, String record) {
+        Date sqldate = null;
 
+        try {
+            sqldate = new Date(sdf.parse(date).getTime());
+
+        } catch (Exception e) {
+            // Handle the parse exception
+            logger.error("Unable to parse date -" + date + "for record - " + record);
+            e.printStackTrace();
+        } finally {
+            return sqldate;
+        }
+
+
+    }
 }

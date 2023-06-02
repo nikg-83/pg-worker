@@ -9,7 +9,7 @@ import java.text.SimpleDateFormat;
 @Slf4j
 public class ExcelDateUtil {
     private static final Logger logger = LoggerFactory.getLogger(ExcelDateUtil.class);
-    public static Date parseDate(String date, SimpleDateFormat sdf, String record){
+    public Date parseDate(String date, SimpleDateFormat sdf, String record){
         Date sqldate = null;
 
         try {

@@ -35,7 +35,7 @@ public class HdfcBankController {
 
         logger.info("User-Agent: {}", sqsdMessageUserAgent);
         logger.info("Content-Type: {}", sqsdMessageContentType);
-        logger.info("Message-Body: {}", sqsdMessageBody);
+        //logger.info("Message-Body: {}", sqsdMessageBody);
         logger.info("X-Aws-Sqsd-Msgid: {}", sqsdMessageId);
         logger.info("X-Aws-Sqsd-Taskname: {}", sqsdMessagePeriodicTaskName);
         logger.info("X-Aws-Sqsd-Queue: {}", sqsdMessageQueueName);
