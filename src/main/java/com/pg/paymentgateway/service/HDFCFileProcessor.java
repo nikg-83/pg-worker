@@ -13,25 +13,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.sql.Date;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class HDFCFileProcessor implements FileProcessor {
     private static final Logger logger = LoggerFactory.getLogger(HDFCFileProcessor.class);
-    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy");
-
-    private Integer bankId;
-
-    private String accountNumber;
-
     @Autowired
     BankAccountsRepository bankAccountsRepository;
     @Autowired
@@ -43,6 +40,10 @@ public class HDFCFileProcessor implements FileProcessor {
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();
         ExcelDateUtil excelDateUtil = new ExcelDateUtil();
+        DateTimeFormatter sdf = DateTimeFormatter.ofPattern("dd/MM/yy");
+        String accountNumber = null;
+        Integer bankId = null;
+        UUID uid = null;
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             Pattern pattern = Pattern.compile("UPI-(\\w+)-(.+)");
@@ -69,14 +70,23 @@ public class HDFCFileProcessor implements FileProcessor {
                         if (bankId == null) {
                             String accNum = row.get("AccNumber").asText();
                             List<BankAccounts> bankAccounts = bankAccountsRepository.findByAccountNumber(accNum);
+                            if(CollectionUtils.isEmpty(bankAccounts)){
+                                logger.error("Bank account is not configured -" + accNum);
+                                return;
+                            }
                             bankId = bankAccounts.get(0).getBankId();
-                            this.accountNumber = accNum;
+                            accountNumber = accNum;
                         }
+                        if(uid == null){
+                            uid = UUID.fromString(row.get("UUID").asText());
+                        }
+                        statement.setUid(uid);
+                        statement.setSeqNum(row.get("SeqNum").asInt());
                         statement.setBankId(bankId);
                         statement.setAccountName(row.get("AccName").asText());
                         statement.setIsClaimed(0);
-                        statement.setCreatedAt(LocalDateTime.now());
-                        statement.setUpdatedAt(LocalDateTime.now());
+                        statement.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+                        statement.setUpdatedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
                         bankStatementList.add(statement);
                     }
                 }
@@ -84,7 +94,7 @@ public class HDFCFileProcessor implements FileProcessor {
             }
 
             reconProcessor.saveStatementList(bankStatementList);
-            logger.info("HDFC message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
+            logger.info("HDFC message processing completed for AccId - " + accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
             if (upiCounter > 0) {
                 dailyLimitListener.handleEvent(new FileEvent(bankId, accountNumber));
             }
@@ -95,11 +105,11 @@ public class HDFCFileProcessor implements FileProcessor {
 
     }
 
-    private Date parseDate(String date, SimpleDateFormat sdf, String record) {
-        Date sqldate = null;
+    private LocalDate parseDate(String date, DateTimeFormatter sdf, String record) {
+        LocalDate sqldate = null;
 
         try {
-            sqldate = new Date(sdf.parse(date).getTime());
+            sqldate = LocalDate.parse(date, sdf);
 
         } catch (Exception e) {
             // Handle the parse exception

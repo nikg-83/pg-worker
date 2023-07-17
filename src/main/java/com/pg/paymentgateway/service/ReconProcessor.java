@@ -4,7 +4,6 @@ import com.pg.paymentgateway.model.BankStatement;
 import com.pg.paymentgateway.model.Transaction;
 import com.pg.paymentgateway.repository.BankStatementRepository;
 import com.pg.paymentgateway.repository.TransactionRepository;
-import lombok.val;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +11,11 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
+
 
 public class ReconProcessor {
     private static final Logger logger = LoggerFactory.getLogger(ReconProcessor.class);
@@ -22,6 +23,10 @@ public class ReconProcessor {
     BankStatementRepository statementRepository;
     @Autowired
     TransactionRepository transactionRepository;
+
+    @Autowired
+    CallBackProcessor callBackProcessor;
+
 
     private boolean isBankStatementExist(BankStatement fileBankStatement, Map<String,BankStatement> statementCache){
 
@@ -50,20 +55,21 @@ public class ReconProcessor {
             });
 
             bankStatementList.stream().forEach(bankStatement -> {
-                saveStatement(bankStatement, statementCache, transCache, bankStatementsList, transactionsList);
+                addStatementAndRecon(bankStatement, statementCache, transCache, bankStatementsList, transactionsList);
             });
 
             statementRepository.saveAllAndFlush(bankStatementsList);
             logger.info("Total statement records committed - " + bankStatementsList.size());
             transactionRepository.saveAllAndFlush(transactionsList);
             logger.info("Total transaction records committed - " + transactionsList.size());
+            callBackProcessor.sendCallBacks(transactionsList);
         }
 
-     public void saveStatement(BankStatement statement,
-                               Map<String,BankStatement> statementCache,
-                               Map<String,List<Transaction>> transCache,
-                               List<BankStatement> bankStatementsList,
-                               List<Transaction> transactionsList){
+     public void addStatementAndRecon(BankStatement statement,
+                                      Map<String,BankStatement> statementCache,
+                                      Map<String,List<Transaction>> transCache,
+                                      List<BankStatement> bankStatementsList,
+                                      List<Transaction> transactionsList){
         boolean isStatementAdded = false;
         BankStatement bankStatement1;
         try {
@@ -101,14 +107,18 @@ public class ReconProcessor {
                     // Record Matched
                     newBankStatement.setOrderId(transaction1.orderId);
                     newBankStatement.setIsClaimed(1);
-                    newBankStatement.setUpdatedAt(LocalDateTime.now());
+                    newBankStatement.setUpdatedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
                     // Check for failed transition state and set flag
                     if("Failed".equals(transaction1.getStatus()) || ("Pending".equals(transaction1.getStatus()) && Instant.now().isAfter(transaction1.getStatusFailedAfter()))){
                         transaction1.setIsSuccessAfterFailed(1);
                     }
                     transaction1.setStatus("Success");
                     transaction1.setBankAccountId(newBankStatement.getAccountId());
+                    transaction1.setBankAccountName(newBankStatement.getAccountName());
+                    transaction1.setUpdatedAt(Instant.now());
                     transactionsList.add(transaction1);
+                    // add call back message
+                    //callBackProcessor.createAndAddCallbackStatus(transaction1);
                     //transactionRepository.save(transaction1);
                 }
             });

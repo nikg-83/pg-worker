@@ -13,22 +13,23 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class IndusFileProcessor implements FileProcessor {
     private static final Logger logger = LoggerFactory.getLogger(IndusFileProcessor.class);
-    SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
-
-    private Integer bankId;
-     @Autowired
+    @Autowired
     ReconProcessor reconProcessor;
 
      @Autowired
@@ -36,11 +37,14 @@ public class IndusFileProcessor implements FileProcessor {
     @Autowired
     @Qualifier("dailyLimitListener")
     FileEventListener dailyLimitListener;
-    private String accountNumber;
 
     public void processMessage(String jsonString) {
         ObjectMapper objectMapper = new ObjectMapper();
         ExcelDateUtil excelDateUtil = new ExcelDateUtil();
+        DateTimeFormatter sdf = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        String accountNumber = null;
+        Integer bankId = null;
+        UUID uid = null;
         try {
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             Pattern pattern = Pattern.compile("UPI/(\\w+)/(\\w+)/(.+)");
@@ -57,26 +61,35 @@ public class IndusFileProcessor implements FileProcessor {
                         upiCounter++;
                         val statement = new BankStatement();
                         statement.setAmount(row.get("Credit").asText());
-                        statement.setTransactionDate(excelDateUtil.parseDate(row.get("TxnDate").asText() , sdf, "Indus Bank"));
+                        statement.setTransactionDate(parseDate(row.get("TxnDate").asText(), sdf, row.toString()));
                         statement.setUtrNumber(matcher.group(1));
                         statement.setAccountId(row.get("AccNumber").asText());
                         if(bankId == null){
                             String accNum = row.get("AccNumber").asText();
                             List<BankAccounts> bankAccounts = bankAccountsRepository.findByAccountNumber(accNum);
+                            if(CollectionUtils.isEmpty(bankAccounts)){
+                                logger.error("Bank account is not configured -" + accNum);
+                                return;
+                            }
                             bankId = bankAccounts.get(0).getBankId();
-                            this.accountNumber = accNum;
+                            accountNumber = accNum;
                         }
+                        if(uid == null){
+                            uid = UUID.fromString(row.get("UUID").asText());
+                        }
+                        statement.setUid(uid);
+                        statement.setSeqNum(row.get("SeqNum").asInt());
                         statement.setBankId(bankId);
                         statement.setAccountName(row.get("AccName").asText());
                         statement.setIsClaimed(0);
-                        statement.setCreatedAt(LocalDateTime.now());
-                        statement.setUpdatedAt(LocalDateTime.now());
+                        statement.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+                        statement.setUpdatedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
                         bankStatementList.add(statement);
                     }
                 }
             }
             reconProcessor.saveStatementList(bankStatementList);
-            logger.info("Indus message processing completed for AccId - " + this.accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
+            logger.info("Indus message processing completed for AccId - " + accountNumber + " Total records are  " + totalrecordsCounter + " and total UPI records are " + upiCounter);
             if(upiCounter > 0){
                 dailyLimitListener.handleEvent(new FileEvent(bankId, accountNumber));
             }
@@ -85,6 +98,19 @@ public class IndusFileProcessor implements FileProcessor {
             throw new RuntimeException(e);
         }
     }
+    private LocalDate parseDate(String date, DateTimeFormatter sdf, String record) {
+        LocalDate sqldate = null;
 
+        try {
+            sqldate = LocalDate.parse(date, sdf);
+
+        } catch (Exception e) {
+            // Handle the parse exception
+            logger.error("Unable to parse date -" + date + "for record - " + record);
+            e.printStackTrace();
+        } finally {
+            return sqldate;
+        }
+    }
 
 }

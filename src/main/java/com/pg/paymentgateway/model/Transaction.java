@@ -26,6 +26,7 @@ public class Transaction {
     public String message;
     public String userUpiId;
     public String bankAccountId;
+    public String bankAccountName;
     public String deviceType;
     public String redirectUrl;
     public String callbackUrl;

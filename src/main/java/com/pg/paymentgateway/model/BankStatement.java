@@ -3,8 +3,9 @@ package com.pg.paymentgateway.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.sql.Date;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -22,7 +23,7 @@ public class BankStatement {
     String transactionNumber;
     String amount;
     String utrNumber;
-    Date transactionDate;
+    LocalDate transactionDate;
     String accountId;
     String accountName;
     Integer bankId;
@@ -31,6 +32,8 @@ public class BankStatement {
     Integer isChecked;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
+    Integer seqNum;
+    UUID uid;
  //   String bankName;
 //    String description;
 //    String BranchName;
